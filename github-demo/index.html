@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>GitHub demo for OAuth Lambda</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/jasny-bootstrap/3.1.3/css/jasny-bootstrap.min.css" rel="stylesheet" media="screen">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <h1>GitHub Demo</h1>
+
+    <div id='container'></div>
+    
+    <script id='template' type='text/ractive'>
+      <p>Hello, {{name}}!</p>
+    </script>
+    
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.33.min.js"></script>
+    <script src="bower_components/github-api/github.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ractive/0.7.3/ractive.min.js"></script>
+    
+    <script>
+        function getGitHubToken(clientID, callback) {
+            var token = sessionStorage.getItem('github_token');
+
+            if (token) {
+                callback(token);
+                return;
+            }
+            
+            if (getParameterByName('error')) {
+                showError(getParameterByName('error_description'));
+                return;
+            }
+            
+            var code = getParameterByName('code');
+            
+            if (!code) {
+                window.location.href = "https://github.com/login/oauth/authorize?client_id=" + clientID;
+                return;
+            }
+
+            var payload = JSON.stringify({code: code});
+            
+            var lambda = new AWS.Lambda();
+            lambda.invoke({FunctionName: 'OAuthLambda-GitHubDemo', Payload: payload}, function(err, data) {
+                if (err) return showError(err);
+                
+                var token = data.Payload;
+                                
+                sessionStorage.setItem('github_token', token);
+                window.location.reload();
+            });
+        }
+
+        function showError(message) {
+            console.log(message);
+        }
+        
+        function getParameterByName(name) {
+            name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+            var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+                results = regex.exec(location.search);
+            return results === null ? null : decodeURIComponent(results[1].replace(/\+/g, " "));
+        }
+        
+        function parseTemplate(data)
+        {
+            // We parse the Mustache template using Ractive (http://ractivejs.org)        
+            var ractive = new Ractive({
+              el: '#container',
+              template: '#template',
+              data: { name: 'world' }
+            });
+        }
+        
+        // Main
+        +function() {
+            var clientID = "4b7d2e5f12a770aa20e2";
+            
+            AWS.config.credentials = new AWS.Credentials("AKIAIMXE6QU77IAX5ZXA", "PeiYNPeSDNtxi3sfs/N4v4uWKS0qSQD5/RnHcmJP");
+            AWS.config.region = 'eu-west-1';
+            
+            getGitHubToken(clientID, function(token) {
+                console.log(token);
+                var github = new Github({
+                  token: token,
+                  auth: "oauth"
+                });
+            });        
+        }();
+        
+    </script>
+  </body>
+</html>

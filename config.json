@@ -1,0 +1,9 @@
+{
+    "clientID": "4b7d2e5f12a770aa20e2",
+    "clientSecret": "7b90949cc7064300017714f4867f4f83dbde0132",
+    "baseURI": "https://github.com/",
+    "endpointURI": "login/oauth/access_token",
+    "callbackURI": null,
+    "scope": ["user"]
+}
+
